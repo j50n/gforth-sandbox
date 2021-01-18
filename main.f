@@ -1,64 +1,46 @@
-: EKEYPLAY
-    BEGIN
-        EKEY? IF 
-            EKEY 
-            DUP 27 = IF 
-                DROP EXIT
-            ELSE
-                . SPACE
-            THEN
-        ELSE
-            16 MS
-        THEN
-    AGAIN ;
+s" ./term-util.f" required
+s" ./demos.f" required
 
-27 constant escape-key
+variable paddlex
 
-\ Do nothing until the escape key is pressed.
-: wait-for-escape ( -- )
-    begin 
-        key
-    escape-key = until ;
+10 constant pw
 
-\ Hide the terminal cursor.
-: hide-cursor ( -- )
-    27 emit
-    ." [?25l" ;
+: ddebug ( -- )
+    0 0 at-xy
+    form ." w=" . ." h=" . space 
+    cr ." px=" paddlex @ . space ;
 
-\ Show the terminal cursor.
-: show-cursor ( -- )
-    27 emit
-    ." [?25h" ;
+: draw-paddle ( -- )
+    0 t-height 2 - at-xy term-erase-line
+    \ paddlex @ 1 - t-height 2 - pw 2 + 32 hline 
+    paddlex @ t-height 2 - pw 9608 hline ;
 
-\ Draw a horizontal line of char ch from x,y with length len, draw direction right.
-: hline ( n1 n1 n1 n1 -- ) { x y len ch }
-    x y at-xy
-    len 0 ?do
-        ch emit
-    loop ;
-
-\ Draw a vertical line of char ch from x,y with length len, draw direction down.
-: vline ( n1 n1 n1 n1 -- ) { x y len ch }
-    len 0 ?do
-        x y i + at-xy
-        ch emit
-    loop ;
-
-\ Height of the terminal in characters.
-: term-height ( -- n1 )
-    form drop ;
-
-\ Width of the terminal in characters.
-: term-width ( -- n1 )
-    form nip ;
-
-\ Draws a box around the edges of the terminal. Useless, but proves I can
-\ do this with invisible cursor and without auto-scrolling.
-: box-border ( -- )
-    hide-cursor
-    0 0 term-width [char] @ hline                   ( line at top )
-    0 term-height 1 - term-width [char] @ hline     ( line at bottom )
-    0 0 term-height [char] @ vline                  ( line at left )
-    term-width 1 - 0 term-height [char] @ vline     ( line at right )
-    wait-for-escape
-    show-cursor ;
+: ark
+    page
+    cursor-hide
+    begin
+        ddebug
+        ekey? if
+            ekey 
+            dup 27 = if 
+                cursor-show
+                drop 
+                exit
+            else
+                case 
+                    k-left of 
+                            paddlex @ 0 >  if 
+                                -1 paddlex +!
+                            then 
+                        endof
+                    k-right of 
+                            paddlex @ t-width pw - < if
+                                1 paddlex +!
+                            then 
+                        endof
+                endcase 
+                draw-paddle 
+            then
+        then
+        8 ms
+    again ;
